@@ -1,244 +1,269 @@
-class PomodoroTimer {
+class Game2048 {
     constructor() {
-        this.currentPhase = 'idle';
-        this.timeLeft = 25 * 60;
-        this.totalTime = 25 * 60;
-        this.intervalId = null;
-        this.pomodoroCount = 0;
-        this.phaseOrder = ['working', 'breaking', 'working', 'breaking', 'working', 'breaking', 'working', 'long-breaking'];
-        this.phaseIndex = 0;
+        this.gridSize = 4;
+        this.grid = [];
+        this.score = 0;
+        this.bestScore = parseInt(localStorage.getItem('bestScore') || '0');
+        this.won = false;
+        this.gameOver = false;
         
         this.initElements();
+        this.newGame();
         this.bindEvents();
-        this.updateDisplay();
     }
 
     initElements() {
-        this.timeDisplay = document.getElementById('time');
-        this.statusDisplay = document.getElementById('status');
-        this.progressBar = document.getElementById('progress');
-        this.startBtn = document.getElementById('start-btn');
-        this.pauseBtn = document.getElementById('pause-btn');
-        this.resetBtn = document.getElementById('reset-btn');
-        this.skipBtn = document.getElementById('skip-btn');
-        this.focusInput = document.getElementById('focus-duration');
-        this.breakInput = document.getElementById('break-duration');
-        this.longBreakInput = document.getElementById('long-break-duration');
-        this.pomodoroCountDisplay = document.getElementById('pomodoro-count');
-        this.timerCircle = document.querySelector('.timer-circle');
+        this.tilesContainer = document.getElementById('tiles');
+        this.scoreDisplay = document.getElementById('score');
+        this.bestScoreDisplay = document.getElementById('best-score');
+        this.gameOverOverlay = document.getElementById('game-over');
+        this.winOverlay = document.getElementById('win-overlay');
+        this.finalScoreDisplay = document.getElementById('final-score');
+        
+        document.getElementById('restart-btn').addEventListener('click', () => this.newGame());
+        document.getElementById('try-again-btn').addEventListener('click', () => this.newGame());
+        document.getElementById('keep-playing-btn').addEventListener('click', () => this.continueGame());
+        document.getElementById('new-game-btn').addEventListener('click', () => this.newGame());
+        
+        this.updateBestScore();
     }
 
     bindEvents() {
-        this.startBtn.addEventListener('click', () => this.start());
-        this.pauseBtn.addEventListener('click', () => this.pause());
-        this.resetBtn.addEventListener('click', () => this.reset());
-        this.skipBtn.addEventListener('click', () => this.skip());
-        this.focusInput.addEventListener('change', () => this.handleDurationChange());
-        this.breakInput.addEventListener('change', () => this.handleDurationChange());
-        this.longBreakInput.addEventListener('change', () => this.handleDurationChange());
-    }
-
-    getPhaseDuration(phase) {
-        switch(phase) {
-            case 'working':
-                return parseInt(this.focusInput.value) * 60;
-            case 'breaking':
-                return parseInt(this.breakInput.value) * 60;
-            case 'long-breaking':
-                return parseInt(this.longBreakInput.value) * 60;
-            default:
-                return 25 * 60;
-        }
-    }
-
-    getPhaseName(phase) {
-        switch(phase) {
-            case 'working':
-                return '专注中';
-            case 'breaking':
-                return '休息中';
-            case 'long-breaking':
-                return '长休息';
-            default:
-                return '准备开始';
-        }
-    }
-
-    getPhaseColor(phase) {
-        switch(phase) {
-            case 'working':
-                return '#fc8181';
-            case 'breaking':
-                return '#48bb78';
-            case 'long-breaking':
-                return '#646cff';
-            default:
-                return '#4a5568';
-        }
-    }
-
-    start() {
-        if (this.currentPhase === 'idle') {
-            this.currentPhase = 'working';
-            this.totalTime = this.getPhaseDuration('working');
-            this.timeLeft = this.totalTime;
-            this.phaseIndex = 0;
-        }
-
-        this.intervalId = setInterval(() => {
-            this.timeLeft--;
-            this.updateDisplay();
+        document.addEventListener('keydown', (e) => {
+            if (this.gameOver) return;
             
-            if (this.timeLeft <= 0) {
-                this.completePhase();
+            const keyMap = {
+                ArrowUp: 'up',
+                ArrowDown: 'down',
+                ArrowLeft: 'left',
+                ArrowRight: 'right'
+            };
+            
+            const direction = keyMap[e.key];
+            if (direction) {
+                e.preventDefault();
+                this.move(direction);
             }
-        }, 1000);
+        });
 
-        this.updateControls();
-    }
-
-    pause() {
-        if (this.intervalId) {
-            clearInterval(this.intervalId);
-            this.intervalId = null;
-        }
-        this.updateControls();
-    }
-
-    reset() {
-        if (this.intervalId) {
-            clearInterval(this.intervalId);
-            this.intervalId = null;
-        }
-
-        this.currentPhase = 'idle';
-        this.timeLeft = this.getPhaseDuration('working');
-        this.totalTime = this.timeLeft;
-        this.phaseIndex = 0;
+        let touchStartX = 0;
+        let touchStartY = 0;
         
-        this.updateDisplay();
-        this.updateControls();
-        this.clearFlash();
-    }
-
-    skip() {
-        if (this.intervalId) {
-            clearInterval(this.intervalId);
-            this.intervalId = null;
-        }
-        this.completePhase();
-    }
-
-    completePhase() {
-        if (this.intervalId) {
-            clearInterval(this.intervalId);
-            this.intervalId = null;
-        }
-
-        if (this.currentPhase === 'working') {
-            this.pomodoroCount++;
-            this.pomodoroCountDisplay.textContent = this.pomodoroCount;
-        }
-
-        this.playNotificationSound();
-        this.flashTimer();
-
-        setTimeout(() => {
-            this.nextPhase();
-        }, 1000);
-    }
-
-    nextPhase() {
-        this.phaseIndex++;
+        document.addEventListener('touchstart', (e) => {
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+        });
         
-        if (this.phaseIndex >= this.phaseOrder.length) {
-            this.phaseIndex = 0;
-        }
-
-        this.currentPhase = this.phaseOrder[this.phaseIndex];
-        this.totalTime = this.getPhaseDuration(this.currentPhase);
-        this.timeLeft = this.totalTime;
-
-        this.updateDisplay();
-        this.updateControls();
-        this.clearFlash();
-        this.start();
-    }
-
-    handleDurationChange() {
-        if (this.currentPhase === 'idle') {
-            this.timeLeft = this.getPhaseDuration('working');
-            this.totalTime = this.timeLeft;
-            this.updateDisplay();
-        }
-    }
-
-    updateDisplay() {
-        const minutes = Math.floor(this.timeLeft / 60);
-        const seconds = this.timeLeft % 60;
-        const formattedTime = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-        
-        this.timeDisplay.textContent = formattedTime;
-        this.statusDisplay.textContent = this.getPhaseName(this.currentPhase);
-        this.statusDisplay.className = `status-value ${this.currentPhase}`;
-        
-        this.updateProgress();
-    }
-
-    updateProgress() {
-        const progress = (this.totalTime - this.timeLeft) / this.totalTime;
-        const degrees = progress * 360;
-        
-        this.progressBar.style.setProperty('--progress-deg', `${degrees}deg`);
-        
-        const color = this.getPhaseColor(this.currentPhase);
-        this.progressBar.style.background = `conic-gradient(${color} 0deg, transparent ${degrees}deg)`;
-    }
-
-    updateControls() {
-        const isRunning = this.intervalId !== null;
-        
-        this.startBtn.disabled = isRunning;
-        this.pauseBtn.disabled = !isRunning;
-        this.skipBtn.disabled = !isRunning;
-        this.resetBtn.disabled = false;
-        
-        this.focusInput.disabled = isRunning;
-        this.breakInput.disabled = isRunning;
-        this.longBreakInput.disabled = isRunning;
-    }
-
-    playNotificationSound() {
-        try {
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
+        document.addEventListener('touchend', (e) => {
+            if (this.gameOver) return;
             
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
+            const touchEndX = e.changedTouches[0].clientX;
+            const touchEndY = e.changedTouches[0].clientY;
             
-            oscillator.frequency.value = 800;
-            oscillator.type = 'sine';
+            const deltaX = touchEndX - touchStartX;
+            const deltaY = touchEndY - touchStartY;
             
-            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+            const minSwipeDistance = 30;
             
-            oscillator.start(audioContext.currentTime);
-            oscillator.stop(audioContext.currentTime + 0.5);
-        } catch (e) {
-            console.log('Audio not supported');
+            if (Math.abs(deltaX) < minSwipeDistance && Math.abs(deltaY) < minSwipeDistance) {
+                return;
+            }
+            
+            if (Math.abs(deltaX) > Math.abs(deltaY)) {
+                this.move(deltaX > 0 ? 'right' : 'left');
+            } else {
+                this.move(deltaY > 0 ? 'down' : 'up');
+            }
+        });
+    }
+
+    newGame() {
+        this.grid = Array(this.gridSize).fill(null).map(() => Array(this.gridSize).fill(0));
+        this.score = 0;
+        this.won = false;
+        this.gameOver = false;
+        
+        this.addRandomTile();
+        this.addRandomTile();
+        this.updateScore();
+        this.render();
+        this.hideOverlays();
+    }
+
+    continueGame() {
+        this.won = false;
+        this.hideOverlays();
+    }
+
+    hideOverlays() {
+        this.gameOverOverlay.classList.remove('show');
+        this.winOverlay.classList.remove('show');
+    }
+
+    addRandomTile() {
+        const emptyCells = [];
+        
+        for (let i = 0; i < this.gridSize; i++) {
+            for (let j = 0; j < this.gridSize; j++) {
+                if (this.grid[i][j] === 0) {
+                    emptyCells.push({ row: i, col: j });
+                }
+            }
+        }
+        
+        if (emptyCells.length > 0) {
+            const randomCell = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+            this.grid[randomCell.row][randomCell.col] = Math.random() < 0.9 ? 2 : 4;
         }
     }
 
-    flashTimer() {
-        this.timerCircle.classList.add('flash');
+    move(direction) {
+        let moved = false;
+        const originalGrid = this.grid.map(row => [...row]);
+        
+        if (direction === 'left') {
+            for (let i = 0; i < this.gridSize; i++) {
+                this.grid[i] = this.mergeRow(this.grid[i]);
+            }
+        } else if (direction === 'right') {
+            for (let i = 0; i < this.gridSize; i++) {
+                this.grid[i] = this.mergeRow(this.grid[i].reverse()).reverse();
+            }
+        } else if (direction === 'up') {
+            for (let j = 0; j < this.gridSize; j++) {
+                const column = this.getColumn(j);
+                const mergedColumn = this.mergeRow(column);
+                this.setColumn(j, mergedColumn);
+            }
+        } else if (direction === 'down') {
+            for (let j = 0; j < this.gridSize; j++) {
+                const column = this.getColumn(j).reverse();
+                const mergedColumn = this.mergeRow(column).reverse();
+                this.setColumn(j, mergedColumn);
+            }
+        }
+        
+        for (let i = 0; i < this.gridSize; i++) {
+            for (let j = 0; j < this.gridSize; j++) {
+                if (this.grid[i][j] !== originalGrid[i][j]) {
+                    moved = true;
+                    break;
+                }
+            }
+            if (moved) break;
+        }
+        
+        if (moved) {
+            this.addRandomTile();
+            this.updateScore();
+            this.render();
+            this.checkGameState();
+        }
     }
 
-    clearFlash() {
-        this.timerCircle.classList.remove('flash');
+    mergeRow(row) {
+        let filtered = row.filter(val => val !== 0);
+        let merged = [];
+        
+        for (let i = 0; i < filtered.length; i++) {
+            if (i + 1 < filtered.length && filtered[i] === filtered[i + 1]) {
+                const newValue = filtered[i] * 2;
+                merged.push(newValue);
+                this.score += newValue;
+                
+                if (newValue === 2048) {
+                    this.won = true;
+                }
+                i++;
+            } else {
+                merged.push(filtered[i]);
+            }
+        }
+        
+        while (merged.length < this.gridSize) {
+            merged.push(0);
+        }
+        
+        return merged;
+    }
+
+    getColumn(col) {
+        const column = [];
+        for (let i = 0; i < this.gridSize; i++) {
+            column.push(this.grid[i][col]);
+        }
+        return column;
+    }
+
+    setColumn(col, column) {
+        for (let i = 0; i < this.gridSize; i++) {
+            this.grid[i][col] = column[i];
+        }
+    }
+
+    updateScore() {
+        this.scoreDisplay.textContent = this.score;
+        
+        if (this.score > this.bestScore) {
+            this.bestScore = this.score;
+            localStorage.setItem('bestScore', this.bestScore.toString());
+            this.updateBestScore();
+        }
+    }
+
+    updateBestScore() {
+        this.bestScoreDisplay.textContent = this.bestScore;
+    }
+
+    render() {
+        this.tilesContainer.innerHTML = '';
+        
+        for (let i = 0; i < this.gridSize; i++) {
+            for (let j = 0; j < this.gridSize; j++) {
+                const value = this.grid[i][j];
+                if (value !== 0) {
+                    const tile = document.createElement('div');
+                    tile.className = `tile value-${value}`;
+                    tile.textContent = value;
+                    this.tilesContainer.appendChild(tile);
+                }
+            }
+        }
+    }
+
+    checkGameState() {
+        if (this.won && !this.gameOver) {
+            this.winOverlay.classList.add('show');
+            return;
+        }
+        
+        if (!this.canMove()) {
+            this.gameOver = true;
+            this.finalScoreDisplay.textContent = `最终得分: ${this.score}`;
+            this.gameOverOverlay.classList.add('show');
+        }
+    }
+
+    canMove() {
+        for (let i = 0; i < this.gridSize; i++) {
+            for (let j = 0; j < this.gridSize; j++) {
+                if (this.grid[i][j] === 0) {
+                    return true;
+                }
+                
+                if (j < this.gridSize - 1 && this.grid[i][j] === this.grid[i][j + 1]) {
+                    return true;
+                }
+                
+                if (i < this.gridSize - 1 && this.grid[i][j] === this.grid[i + 1][j]) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    new PomodoroTimer();
+    new Game2048();
 });
