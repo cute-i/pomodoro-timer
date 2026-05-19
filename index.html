@@ -3,72 +3,74 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>专注番茄钟 - 生活效率工具箱</title>
+    <title>2048</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>专注番茄钟 - 生活效率工具箱</h1>
+            <h1>2048</h1>
+            <div class="score-container">
+                <div class="score-box">
+                    <div class="score-label">分数</div>
+                    <div class="score-value" id="score">0</div>
+                </div>
+                <div class="score-box best">
+                    <div class="score-label">最高分</div>
+                    <div class="score-value" id="best-score">0</div>
+                </div>
+            </div>
         </header>
 
-        <main>
-            <div class="status-indicator">
-                <span class="status-label">当前状态:</span>
-                <span class="status-value" id="status">准备开始</span>
-            </div>
+        <div class="info">
+            <p>使用键盘方向键 ↑ ↓ ← → 或滑动屏幕来移动方块</p>
+            <p>相同数字的方块碰撞时会合并</p>
+            <p>目标：达到 2048！</p>
+        </div>
 
-            <div class="timer-display">
-                <div class="timer-circle">
-                    <div class="timer-progress" id="progress"></div>
-                    <div class="timer-time" id="time">25:00</div>
+        <button id="restart-btn" class="restart-btn">重新开始</button>
+
+        <div class="game-container">
+            <div class="game-grid" id="grid">
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+            </div>
+            <div class="tiles-container" id="tiles"></div>
+        </div>
+
+        <div class="game-over-overlay" id="game-over">
+            <div class="overlay-content">
+                <h2 id="game-over-text">游戏结束</h2>
+                <p id="final-score">最终得分: 0</p>
+                <button id="try-again-btn">再玩一次</button>
+            </div>
+        </div>
+
+        <div class="game-over-overlay" id="win-overlay">
+            <div class="overlay-content">
+                <h2>🎉 恭喜！</h2>
+                <p>你达到了 2048！</p>
+                <div class="win-buttons">
+                    <button id="keep-playing-btn">继续游戏</button>
+                    <button id="new-game-btn">新游戏</button>
                 </div>
             </div>
-
-            <div class="controls">
-                <button id="start-btn" class="control-btn start-btn">
-                    <span class="btn-icon">▶</span>
-                    <span class="btn-text">开始</span>
-                </button>
-                <button id="pause-btn" class="control-btn pause-btn" disabled>
-                    <span class="btn-icon">⏸</span>
-                    <span class="btn-text">暂停</span>
-                </button>
-                <button id="reset-btn" class="control-btn reset-btn">
-                    <span class="btn-icon">↺</span>
-                    <span class="btn-text">重置</span>
-                </button>
-                <button id="skip-btn" class="control-btn skip-btn" disabled>
-                    <span class="btn-icon">⏭</span>
-                    <span class="btn-text">跳过</span>
-                </button>
-            </div>
-
-            <div class="settings">
-                <h2>时长设置</h2>
-                <div class="settings-grid">
-                    <div class="setting-item">
-                        <label for="focus-duration">专注时长 (分钟)</label>
-                        <input type="number" id="focus-duration" min="1" max="60" value="25">
-                    </div>
-                    <div class="setting-item">
-                        <label for="break-duration">休息时长 (分钟)</label>
-                        <input type="number" id="break-duration" min="1" max="60" value="5">
-                    </div>
-                    <div class="setting-item">
-                        <label for="long-break-duration">长休息时长 (分钟)</label>
-                        <input type="number" id="long-break-duration" min="1" max="60" value="15">
-                    </div>
-                </div>
-            </div>
-
-            <div class="stats">
-                <div class="stat-item">
-                    <span class="stat-value" id="pomodoro-count">0</span>
-                    <span class="stat-label">已完成番茄钟</span>
-                </div>
-            </div>
-        </main>
+        </div>
     </div>
 
     <script src="script.js"></script>
